@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { PlayCircleIcon } from '@heroicons/react/24/solid';
 import SongInput from '@/components/SongInput';
 import SongList from '@/components/SongList';
@@ -143,54 +143,82 @@ export default function Home() {
       return;
     }
 
-    if (!session) {
-      try {
-        const songsData = JSON.stringify(processedSongs);
-        localStorage.setItem('pendingSongs', songsData);
-        localStorage.setItem('pendingPlatform', selectedPlatform);
-        
-        await signIn(
-          selectedPlatform === 'YouTube Music' ? 'google' : 'spotify',
-          { callbackUrl: window.location.origin + '/?callback=true' }
-        );
-      } catch (error) {
-        toast.error('Failed to store data. Please try again.');
-      }
-      return;
-    }
+    // Save current state before redirecting
+    const currentState = {
+      songs: processedSongs,
+      platform: selectedPlatform
+    };
+    localStorage.setItem('playlistPendingState', JSON.stringify(currentState));
 
-    setIsLoading(true);
-    setIsCreating(true);
-    
-    const apiUrl = selectedPlatform === 'YouTube Music' ? '/api/youtube' : '/api/spotify';
-    
+    // Always force new login
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          songs: processedSongs,
-          name: 'My Awesome Playlist'
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create playlist');
-      }
-
-      setPlaylistResult(data);
-      toast.success('Playlist created successfully!');
+      setIsLoading(true);
+      await signOut({ redirect: false });
+      await signIn(
+        selectedPlatform === 'YouTube Music' ? 'google' : 'spotify',
+        { 
+          callbackUrl: window.location.origin,
+          prompt: 'consent'
+        }
+      );
     } catch (error) {
-      toast.error('Failed to create playlist. Please try again.');
-    } finally {
+      toast.error('Failed to authenticate. Please try again.');
       setIsLoading(false);
-      setIsCreating(false);
     }
   };
+
+  // Handle auth callback and playlist creation
+  useEffect(() => {
+    const createPlaylistAfterAuth = async () => {
+      // Check if we have pending state and valid session
+      const pendingStateStr = localStorage.getItem('playlistPendingState');
+      if (!pendingStateStr || !session?.accessToken) return;
+
+      try {
+        const pendingState = JSON.parse(pendingStateStr);
+        setProcessedSongs(pendingState.songs);
+        setSelectedPlatform(pendingState.platform);
+        
+        setIsLoading(true);
+        setIsCreating(true);
+
+        const apiUrl = pendingState.platform === 'YouTube Music' ? '/api/youtube' : '/api/spotify';
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            songs: pendingState.songs,
+            name: 'My Awesome Playlist'
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create playlist');
+        }
+
+        // Clear pending state
+        localStorage.removeItem('playlistPendingState');
+        
+        setPlaylistResult(data);
+        toast.success('Playlist created successfully!');
+      } catch (error) {
+        console.error('Error creating playlist:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to create playlist');
+        
+        // Clear pending state on error too
+        localStorage.removeItem('playlistPendingState');
+      } finally {
+        setIsLoading(false);
+        setIsCreating(false);
+      }
+    };
+
+    createPlaylistAfterAuth();
+  }, [session]); // Run when session changes
 
   const handleReset = () => {
     setResult(null);
@@ -287,18 +315,25 @@ export default function Home() {
 
       {aiStatus && <ResultModal status={aiStatus} />}
 
-      {isCreating && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-purple-500">
-            <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-lg font-medium text-white">Creating your playlist...</p>
-            <p className="text-sm text-gray-400 mt-2">This may take a moment</p>
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-gray-900/95 p-8 rounded-2xl shadow-2xl text-center border border-purple-500/30">
+            <div className="relative mb-4">
+              <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 bg-purple-500/20 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <p className="text-white text-lg font-medium mb-1">
+              {isCreating ? 'Creating playlist...' : 'Please wait...'}
+            </p>
+            <p className="text-gray-400 text-sm">This may take a moment</p>
           </div>
         </div>
       )}
 
       {playlistResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
           <div className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-purple-500 max-w-md w-full mx-4">
             <h3 className="text-2xl font-bold text-white mb-4">Playlist Created!</h3>
             
