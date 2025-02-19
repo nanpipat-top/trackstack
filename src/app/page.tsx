@@ -234,13 +234,13 @@ export default function Home() {
         <div className="space-y-8">
           <div className="text-center space-y-2">
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-purple-400 via-pink-500 to-purple-600 animate-gradient">
-              Playlist Creator
+              ✨ Playlist Creator
             </h1>
             <p className="text-gray-400">
-              Create playlists on YouTube Music or Spotify from your song list
+              Transform your song list into the perfect playlist on YouTube Music or Spotify 🎵
             </p>
             <p className="text-sm text-purple-400">
-              Optional AI processing for smart song correction and optimal ordering
+              Let AI enhance your playlist with smart suggestions and optimal flow 🤖✨
             </p>
           </div>
 
@@ -266,12 +266,12 @@ export default function Home() {
                       className="w-full px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white font-medium transition-all duration-300 flex items-center justify-center gap-2 group relative hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5"
                     >
                       <span className="text-purple-400 transition-transform duration-300 group-hover:rotate-180">✨</span>
-                      {isProcessing ? 'Processing...' : 'Process with AI (Optional)'}
+                      {isProcessing ? 'Working some magic... ✨' : 'Enhance with AI Magic ✨'}
                       <div className="absolute -bottom-24 left-0 right-0 bg-gray-800 rounded-lg p-4 text-sm opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
-                        AI will help:
-                        • Correct song names and add artists
-                        • Analyze tempo, genre, and energy
-                        • Optimize playlist order for best flow
+                        AI Magic includes:
+                        🎯 Smart song name correction
+                        🎨 Artist suggestions
+                        🎵 Vibe analysis & flow optimization
                       </div>
                     </button>
                   </div>
@@ -294,14 +294,14 @@ export default function Home() {
                           </div>
                         </>
                       ) : (
-                        `Create on ${selectedPlatform}`
+                        `Create Epic Playlist on ${selectedPlatform} 🎵`
                       )}
                     </button>
                     <button
                       onClick={handleReset}
                       className="w-full px-6 py-3 text-gray-400 hover:text-white font-medium transition-all duration-300 rounded-lg border border-gray-800 hover:border-purple-500/30"
                     >
-                      Reset
+                      Start Fresh 🔄
                     </button>
                   </div>
                 </div>
@@ -323,9 +323,9 @@ export default function Home() {
               </div>
             </div>
             <p className="text-white text-lg font-medium mb-1">
-              {isCreating ? 'Creating playlist...' : 'Please wait...'}
+              {isCreating ? 'Creating your epic playlist... 🎵' : 'Working some magic... ✨'}
             </p>
-            <p className="text-gray-400 text-sm">This may take a moment</p>
+            <p className="text-gray-400 text-sm">Just a moment while we craft something special 🪄</p>
           </div>
         </div>
       )}
@@ -333,7 +333,9 @@ export default function Home() {
       {playlistResult && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-purple-500 max-w-md w-full mx-4 transform transition-all duration-300 hover:shadow-[0_0_50px_-12px] hover:shadow-purple-500/30">
-            <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-4">Playlist Created!</h3>
+            <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-4">
+              Your Playlist is Ready! 🎉
+            </h3>
             
             <div className="relative mb-4 flex justify-center transform transition-all duration-300 hover:scale-105">
               <div className="w-24 h-24 bg-purple-600/20 rounded-full flex items-center justify-center">
@@ -354,13 +356,13 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5"
               >
-                Open Playlist
+                Open Playlist 🎵
               </a>
               <button
                 onClick={() => setPlaylistResult(null)}
                 className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5"
               >
-                Create Another
+                Create Another ✨
               </button>
             </div>
           </div>

@@ -38,7 +38,7 @@ export default function SongInput({ onSongInput }: SongInputProps) {
         <textarea
           value={text}
           onChange={handleTextChange}
-          placeholder="Paste your song list here..."
+          placeholder="Paste your song list here... 🎵&#10;One song per line"
           className="w-full h-48 p-4 bg-gray-800 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
         <div className="absolute bottom-4 right-4 flex gap-2">
