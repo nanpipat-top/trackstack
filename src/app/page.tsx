@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
+import { PlayCircleIcon } from '@heroicons/react/24/solid';
 import SongInput from '@/components/SongInput';
 import SongList from '@/components/SongList';
 import PlatformSelector from '@/components/PlatformSelector';
 import ResultModal from '@/components/ResultModal';
-import { Platform, ProcessResult, AIProcessingStatus as Status, Song } from '@/types';
+import { Platform, ProcessResult, AIProcessingStatus as Status, Song, PlaylistResult } from '@/types';
 import toast from 'react-hot-toast';
 
 type Step = 'input' | 'process';
@@ -25,6 +26,7 @@ export default function Home() {
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [aiStatus, setAIStatus] = useState<Status | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [playlistResult, setPlaylistResult] = useState<PlaylistResult | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -87,14 +89,15 @@ export default function Home() {
     }
   }, [session, status, searchParams, router]);
 
-  const handleSongsSubmit = (songs: string[]) => {
-    setRawSongs(songs);
-    const initialSongs: Song[] = songs.map(name => ({
-      name,
-      found: false
-    }));
-    setProcessedSongs(initialSongs);
+  const handleSongInput = async (text: string) => {
+    const songList = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .map(name => ({ name }));
+
     setCurrentStep('process');
+    setProcessedSongs(songList);
   };
 
   const handleProcessWithAI = async () => {
@@ -173,17 +176,13 @@ export default function Home() {
         }),
       });
 
-      const responseText = await response.text();
+      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(`Failed to create playlist: ${responseText}`);
+        throw new Error(data.error || 'Failed to create playlist');
       }
 
-      const data = JSON.parse(responseText);
-      
-      if (data.url) {
-        window.open(data.url, '_blank');
-      }
+      setPlaylistResult(data);
       toast.success('Playlist created successfully!');
     } catch (error) {
       toast.error('Failed to create playlist. Please try again.');
@@ -202,9 +201,9 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto space-y-8">
+    <main className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="container max-w-3xl mx-auto px-4 py-8">
+        <div className="space-y-8">
           <div className="text-center space-y-2">
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
               Playlist Creator
@@ -218,24 +217,14 @@ export default function Home() {
           </div>
 
           {currentStep === 'input' ? (
-            <div className="space-y-4">
-              <SongInput onSongsSubmit={handleSongsSubmit} />
-              {rawSongs.length > 0 && (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setCurrentStep('process')}
-                    className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
+            <div className="space-y-8">
+              <SongInput onSongInput={handleSongInput} />
             </div>
           ) : (
             <div className="space-y-8">
               <div className="bg-gray-900 rounded-lg p-6 space-y-6">
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Your Songs</h2>
+                  {/* <h2 className="text-xl font-semibold">Your Songs</h2> */}
                   <SongList
                     songs={processedSongs || []}
                     onSongsChange={setProcessedSongs}
@@ -261,7 +250,7 @@ export default function Home() {
                   </div>
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Create Playlist</h3>
+                    {/* <h3 className="text-lg font-medium">Create Playlist</h3> */}
                     <PlatformSelector
                       selectedPlatform={selectedPlatform}
                       onSelect={setSelectedPlatform}
@@ -304,6 +293,43 @@ export default function Home() {
             <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-lg font-medium text-white">Creating your playlist...</p>
             <p className="text-sm text-gray-400 mt-2">This may take a moment</p>
+          </div>
+        </div>
+      )}
+
+      {playlistResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-purple-500 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-white mb-4">Playlist Created!</h3>
+            
+            <div className="relative mb-4 flex justify-center">
+              <div className="w-24 h-24 bg-purple-600/20 rounded-full flex items-center justify-center">
+                <PlayCircleIcon className="w-16 h-16 text-purple-500" />
+              </div>
+            </div>
+            
+            <h4 className="text-xl text-white mb-4">{playlistResult.title}</h4>
+            
+            <div className="bg-gray-800 p-3 rounded-lg mb-6 overflow-hidden">
+              <p className="text-purple-400 text-sm break-all">{playlistResult.url.replace('www.', 'music.')}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <a
+                href={playlistResult.url.replace('www.', 'music.')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                Open Playlist
+              </a>
+              <button
+                onClick={() => setPlaylistResult(null)}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Create Another
+              </button>
+            </div>
           </div>
         </div>
       )}

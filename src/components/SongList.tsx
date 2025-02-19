@@ -22,74 +22,84 @@ export default function SongList({ songs, onSongsChange }: SongListProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="w-full space-y-2">
+      <h2 className="text-xl font-semibold text-white mb-4 text-center">Your Songs</h2>
+      <div className="bg-gray-800 rounded-lg divide-y divide-gray-700">
         {songs.map((song, index) => (
-          <div key={index} className="flex items-center gap-4 bg-gray-800/50 p-3 rounded-lg">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
+          <div key={index} className="p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
                 <input
                   type="text"
                   value={song.name}
                   onChange={(e) => handleSongChange(index, 'name', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  placeholder="Song name"
+                  className="text-white font-medium truncate bg-transparent border-0 focus:outline-none focus:ring-0"
                 />
-                <button
-                  onClick={() => handleRemoveSong(index)}
-                  className="p-2 text-gray-400 hover:text-white transition-colors"
-                >
-                  ✕
-                </button>
+                {editingIndex === index ? (
+                  <input
+                    type="text"
+                    value={song.artist || ''}
+                    onChange={(e) => handleSongChange(index, 'artist', e.target.value)}
+                    className="text-gray-400 text-sm truncate bg-transparent border-0 focus:outline-none focus:ring-0"
+                    autoFocus
+                    onBlur={() => setEditingIndex(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setEditingIndex(null);
+                      }
+                    }}
+                  />
+                ) : (
+                  <div 
+                    className="text-gray-400 text-sm truncate cursor-pointer hover:text-white flex items-center gap-2"
+                    onClick={() => setEditingIndex(index)}
+                  >
+                    {song.artist ? (
+                      <>
+                        <span>{song.artist}</span>
+                        <PencilIcon className="w-3.5 h-3.5" />
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-gray-500 italic">Add artist</span>
+                        <PencilIcon className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-2">
-                  {editingIndex === index ? (
-                    <input
-                      type="text"
-                      value={song.artist || ''}
-                      onChange={(e) => handleSongChange(index, 'artist', e.target.value)}
-                      className="flex-1 px-3 py-1.5 bg-gray-800 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      placeholder="Artist name"
-                      autoFocus
-                      onBlur={() => setEditingIndex(null)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setEditingIndex(null);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div 
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 cursor-pointer hover:text-white"
-                      onClick={() => setEditingIndex(index)}
-                    >
-                      {song.artist ? (
-                        <>
-                          <span>Artist: {song.artist}</span>
-                          <PencilIcon className="w-3.5 h-3.5" />
-                        </>
-                      ) : (
-                        <span className="text-gray-500 italic flex items-center gap-2">
-                          Add artist
-                          <PencilIcon className="w-3.5 h-3.5" />
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {(song.tempo || song.genre || song.energy || song.mood) && (
-                <div className="flex flex-wrap gap-3 text-sm text-gray-400 px-3">
-                  {song.tempo && <span>Tempo: {song.tempo}</span>}
-                  {song.genre && <span>Genre: {song.genre}</span>}
-                  {song.energy && <span>Energy: {song.energy}</span>}
-                  {song.mood && <span>Mood: {song.mood}</span>}
-                </div>
-              )}
+              <button
+                onClick={() => handleRemoveSong(index)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
             </div>
+
+            {(song.tempo || song.genre || song.energy || song.mood) && (
+              <div className="flex flex-wrap gap-2 text-sm">
+                {song.tempo && (
+                  <span className="px-2 py-1 bg-gray-700 rounded-full text-gray-300">
+                    {song.tempo}
+                  </span>
+                )}
+                {song.genre && (
+                  <span className="px-2 py-1 bg-gray-700 rounded-full text-gray-300">
+                    {song.genre}
+                  </span>
+                )}
+                {song.energy && (
+                  <span className="px-2 py-1 bg-gray-700 rounded-full text-gray-300">
+                    Energy: {song.energy}
+                  </span>
+                )}
+                {song.mood && (
+                  <span className="px-2 py-1 bg-gray-700 rounded-full text-gray-300">
+                    {song.mood}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

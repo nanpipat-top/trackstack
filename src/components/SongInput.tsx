@@ -1,148 +1,70 @@
-import { ChangeEvent, DragEvent, useState, useRef } from 'react';
-import { createWorker } from 'tesseract.js';
-import { DocumentTextIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { useState, useRef } from 'react';
+import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 
 interface SongInputProps {
-  onSongsSubmit: (songs: string[]) => void;
+  onSongInput: (text: string) => void;
 }
 
-export default function SongInput({ onSongsSubmit }: SongInputProps) {
-  const [songs, setSongs] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+export default function SongInput({ onSongInput }: SongInputProps) {
+  const [text, setText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setSongs(e.target.value);
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
   };
 
   const handleSubmit = () => {
-    const songList = songs
-      .split('\n')
-      .map(song => song.trim())
-      .filter(song => song.length > 0);
-    if (songList.length > 0) {
-      onSongsSubmit(songList);
-      setSongs(''); // Reset songs after submission
+    if (text.trim()) {
+      onSongInput(text);
+      setText('');
     }
   };
 
-  const processText = async (text: string) => {
-    const lines = text
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-    
-    if (lines.length > 0) {
-      setSongs(lines.join('\n'));
-      onSongsSubmit(lines);
-      setSongs(''); // Reset songs after submission
-    }
-  };
-
-  const handleFileUpload = async (file: File) => {
-    setIsProcessing(true);
-    try {
-      if (file.type.startsWith('image/')) {
-        // Process image with OCR
-        const worker = await createWorker('eng');
-        const { data: { text } } = await worker.recognize(file);
-        await worker.terminate();
-        await processText(text);
-      } else if (file.type === 'text/plain') {
-        // Process text file
-        const text = await file.text();
-        await processText(text);
-      }
-    } catch (error) {
-      console.error('Error processing file:', error);
-      alert('Failed to process file. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
+    if (!file) return;
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setText(content);
+    };
+    reader.readAsText(file);
   };
 
   return (
-    <div className="w-full max-w-3xl space-y-4">
-      <div className="space-y-4">
-        <div
-          className={`relative border-2 ${
-            isDragging ? 'border-purple-500' : 'border-gray-700'
-          } border-dashed rounded-lg p-4`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <textarea
-            value={songs}
-            onChange={handleTextChange}
-            placeholder="Enter your songs, one per line..."
-            className="w-full h-48 bg-transparent text-white placeholder-gray-500 focus:outline-none resize-none"
+    <div className="space-y-4">
+      <div className="relative">
+        <textarea
+          value={text}
+          onChange={handleTextChange}
+          placeholder="Paste your song list here..."
+          className="w-full h-48 p-4 bg-gray-800 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+        <div className="absolute bottom-4 right-4 flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".txt"
+            className="hidden"
           />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {!songs && (
-              <div className="text-gray-500 text-center">
-                <DocumentTextIcon className="w-8 h-8 mx-auto mb-2" />
-                <p>Type or drag & drop</p>
-                <p className="text-sm">Supports text and image files</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white flex items-center space-x-2"
+            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 hover:text-white transition-colors"
+            title="Upload text file"
           >
-            <PhotoIcon className="w-5 h-5" />
-            <span>Upload Image</span>
+            <ArrowUpTrayIcon className="w-5 h-5" />
           </button>
-          
-          {songs.trim() && (
-            <button
-              onClick={handleSubmit}
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors"
-            >
-              Next
-            </button>
-          )}
         </div>
-
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept="image/*,text/plain"
-          onChange={(e) => handleFileSelect(e)}
-        />
       </div>
+      <button
+        onClick={handleSubmit}
+        disabled={!text.trim()}
+        className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:hover:bg-purple-600 text-white rounded-lg transition-colors"
+      >
+        Process Songs
+      </button>
     </div>
   );
 }

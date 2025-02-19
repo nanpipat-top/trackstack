@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
 
     const result: ProcessResult = {
       success: true,
+      platform: platform === 'youtube' ? 'YouTube Music' : 'Spotify',
       playlistUrl: platform === 'youtube' 
         ? `https://music.youtube.com/playlist?list=${playlistId}`
         : `https://open.spotify.com/playlist/${playlistId}`,

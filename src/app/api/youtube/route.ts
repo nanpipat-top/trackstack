@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     });
 
     // Create playlist
-    const playlistResponse = await youtube.playlists.insert({
+    const playlist = await youtube.playlists.insert({
       part: ['snippet'],
       requestBody: {
         snippet: {
@@ -35,10 +35,19 @@ export async function POST(req: Request) {
       }
     });
 
-    const playlistId = playlistResponse.data.id;
+    const playlistId = playlist.data.id;
     if (!playlistId) {
       throw new Error('Failed to create playlist');
     }
+
+    // Get playlist details including thumbnail
+    const playlistDetails = await youtube.playlists.list({
+      part: ['snippet'],
+      id: [playlistId]
+    });
+
+    const thumbnailUrl = playlistDetails.data.items?.[0]?.snippet?.thumbnails?.high?.url || '';
+    const playlistTitle = playlistDetails.data.items?.[0]?.snippet?.title || name;
 
     // Add songs to playlist
     for (const song of songs) {
@@ -80,11 +89,12 @@ export async function POST(req: Request) {
       }
     }
 
-    const playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
+      url: `https://www.youtube.com/playlist?list=${playlistId}`,
       playlistId,
-      url: playlistUrl
+      title: playlistTitle,
+      thumbnail: thumbnailUrl
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to create playlist';

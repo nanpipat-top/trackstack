@@ -61,7 +61,14 @@ export class AIService {
     }
   }
 
-  async correctSongNames(songs: string[]): Promise<SongMetadata[]> {
+  async correctSongNames(songs: string[] | { name: string }[]): Promise<SongMetadata[]> {
+    // Convert to array of strings if needed
+    const songNames = Array.isArray(songs) 
+      ? songs.map(song => typeof song === 'string' ? song : song.name)
+      : [];
+
+    console.log('Processing songs:', songNames);
+
     try {
       const response = await this.openai.chat.completions.create({
         model: this.model,
@@ -91,8 +98,7 @@ Example output:
           },
           {
             role: "user",
-            content: `Here are the songs, one per line:
-${songs.join("\n")}`
+            content: `Analyze these songs and return a JSON array with details for each song. Include name, artist (if not specified, use ""), tempo (slow/medium/fast), genre, energy (0-1), and mood. Format the response as a JSON array only, no markdown. Songs: ${songNames.join(', ')}`
           }
         ],
         temperature: 0.3,
@@ -100,23 +106,32 @@ ${songs.join("\n")}`
 
       const content = response.choices[0].message.content || "[]";
       console.log('Raw AI response:', content);
-      const cleanContent = this.cleanJsonResponse(content);
-      const parsed = JSON.parse(cleanContent);
-      
-      // Make sure we have the same number of songs
-      if (Array.isArray(parsed) && parsed.length !== songs.length) {
-        console.warn(`Warning: Got ${parsed.length} songs but expected ${songs.length}`);
-        // If AI missed some songs, add them back with original names
-        const processedNames = new Set(parsed.map(s => s.name.toLowerCase()));
-        const missingSongs = songs.filter(song => !processedNames.has(song.toLowerCase()))
-          .map(song => ({ name: song }));
-        return [...parsed, ...missingSongs];
+
+      // Extract JSON from markdown if present
+      const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        console.error('No JSON found in response');
+        return songNames.map(name => ({ name, artist: '' }));
       }
-      
-      return Array.isArray(parsed) ? parsed : [];
+
+      const jsonStr = jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+
+      if (!Array.isArray(parsed)) {
+        console.error('Parsed result is not an array');
+        return songNames.map(name => ({ name, artist: '' }));
+      }
+
+      // Ensure all original songs are included
+      const processedNames = new Set(parsed.map(s => s.name.toLowerCase()));
+      const missingSongs = songNames
+        .filter(name => !processedNames.has(name.toLowerCase()))
+        .map(name => ({ name, artist: '' }));
+
+      return [...parsed, ...missingSongs];
     } catch (error) {
       console.error('Error parsing AI response:', error);
-      return songs.map(song => ({ name: song }));
+      return songNames.map(name => ({ name, artist: '' }));
     }
   }
 

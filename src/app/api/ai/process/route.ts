@@ -9,8 +9,13 @@ export async function POST(req: NextRequest) {
     
     const aiService = new AIService();
 
-    // Step 1: Correct song names
-    const correctedSongs = await aiService.correctSongNames(songs);
+    // Extract song names for AI processing
+    const songNames = songs.map((song: Song | string) => 
+      typeof song === 'string' ? song : song.name
+    );
+
+    // Step 1: Correct song names and get metadata
+    const correctedSongs = await aiService.correctSongNames(songNames);
     console.log('After correction:', correctedSongs.length);
 
     // Step 2: Analyze songs
