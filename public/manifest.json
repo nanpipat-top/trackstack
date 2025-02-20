@@ -1,0 +1,17 @@
+{
+  "name": "Trackstack",
+  "short_name": "Trackstack",
+  "description": "Stack your tracks, craft your perfect playlist. Seamlessly create and sync playlists across YouTube Music and Spotify.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#9333EA",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

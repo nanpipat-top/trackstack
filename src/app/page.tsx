@@ -232,21 +232,20 @@ export default function Home() {
     <main className="min-h-screen bg-black text-white flex items-center justify-center">
       <div className="container max-w-3xl mx-auto px-4 py-8">
         <div className="space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-purple-400 via-pink-500 to-purple-600 animate-gradient">
-              ✨ Playlist Creator
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text">
+              Trackstack ✨
             </h1>
-            <p className="text-gray-400">
-              Transform your song list into the perfect playlist on YouTube Music or Spotify 🎵
-            </p>
-            <p className="text-sm text-purple-400">
-              Let AI enhance your playlist with smart suggestions and optimal flow 🤖✨
+            <p className="text-xl text-gray-400">
+              Stack your tracks, craft your perfect playlist
             </p>
           </div>
 
           {currentStep === 'input' ? (
             <div className="space-y-8">
-              <SongInput onSongInput={handleSongInput} />
+              <div className="bg-gray-900 rounded-lg p-6 transform transition-all duration-300 hover:shadow-[0_0_30px_-12px] hover:shadow-purple-500/20">
+                <SongInput onSongInput={handleSongInput} />
+              </div>
             </div>
           ) : (
             <div className="space-y-8">
@@ -267,12 +266,6 @@ export default function Home() {
                     >
                       <span className="text-purple-400 transition-transform duration-300 group-hover:rotate-180">✨</span>
                       {isProcessing ? 'Working some magic... ✨' : 'Enhance with AI Magic ✨'}
-                      <div className="absolute -bottom-24 left-0 right-0 bg-gray-800 rounded-lg p-4 text-sm opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
-                        AI Magic includes:
-                        🎯 Smart song name correction
-                        🎨 Artist suggestions
-                        🎵 Vibe analysis & flow optimization
-                      </div>
                     </button>
                   </div>
 
@@ -336,7 +329,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-purple-500 max-w-md w-full mx-4 transform transition-all duration-300 hover:shadow-[0_0_50px_-12px] hover:shadow-purple-500/30">
             <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-4">
-              Your Playlist is Ready! 🎉
+              Your Stack is Ready! 🎉
             </h3>
             
             <div className="relative mb-4 flex justify-center transform transition-all duration-300 hover:scale-105">
@@ -348,12 +341,12 @@ export default function Home() {
             <h4 className="text-xl text-white mb-4">{playlistResult.title}</h4>
             
             <div className="bg-gray-800 p-3 rounded-lg mb-6 overflow-hidden transform transition-all duration-300 hover:bg-gray-700">
-              <p className="text-purple-400 text-sm break-all">{playlistResult.url.replace('www.', 'music.')}</p>
+              <p className="text-purple-400 text-sm break-all">{playlistResult.url.replace("www.", "music.")}</p>
             </div>
 
             <div className="flex gap-3">
               <a
-                href={playlistResult.url.replace('www.', 'music.')}
+                href={playlistResult.url.replace("www.", "music.")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5"

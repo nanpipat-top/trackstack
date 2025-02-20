@@ -14,8 +14,35 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Playlist Creator",
-  description: "Create playlists on YouTube Music or Spotify from your song list",
+  title: "Trackstack",
+  description: "Stack your tracks, craft your perfect playlist. Seamlessly create and sync playlists across YouTube Music and Spotify.",
+  icons: {
+    icon: [
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml",
+      }
+    ],
+    shortcut: ["/favicon.svg"],
+    apple: [
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml",
+      }
+    ],
+  },
+  manifest: "/manifest.json",
+  themeColor: "#9333EA",
+  openGraph: {
+    title: "Trackstack",
+    description: "Stack your tracks, craft your perfect playlist",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Trackstack",
+    description: "Stack your tracks, craft your perfect playlist",
+  }
 };
 
 export default function RootLayout({
