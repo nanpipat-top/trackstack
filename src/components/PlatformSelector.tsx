@@ -35,8 +35,8 @@ export default function PlatformSelector({ onSelect, selectedPlatform }: Platfor
 
   return (
     <div className="w-full max-w-3xl">
-      <br />
-      <h2 className="text-xl font-semibold text-white mb-4">Create Playlist From 👀</h2>
+
+      <h2 className="text-xl font-semibold text-white mb-4">Build on ⚡️</h2>
       <div className="flex gap-4">
         {platforms.map((platform) => (
           <button

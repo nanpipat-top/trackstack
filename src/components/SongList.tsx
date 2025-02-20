@@ -23,7 +23,7 @@ export default function SongList({ songs, onSongsChange }: SongListProps) {
 
   return (
     <div className="w-full space-y-2">
-      <h2 className="text-xl font-semibold text-white mb-4 text-center">Your Songs</h2>
+      <h2 className="text-xl font-semibold text-white mb-4">Stacked Tracks 🎵</h2>
       <div className="bg-gray-800 rounded-lg divide-y divide-gray-700">
         {songs.map((song, index) => (
           <div key={index} className="p-3 space-y-2">

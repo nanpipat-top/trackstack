@@ -91,29 +91,21 @@ export default function Home() {
   }, [session, status, searchParams, router]);
 
   const handleSongInput = async (text: string) => {
+    setIsProcessing(true);
     const songList = text
       .split('\n')
       .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map(name => ({ name }));
+      .filter(line => line.length > 0);
 
-    setCurrentStep('process');
-    setProcessedSongs(songList);
-  };
+    setRawSongs(songList);
 
-  const handleProcessWithAI = async () => {
-    if (!processedSongs?.length) return;
-
-    setIsProcessing(true);
-    const loadingToast = toast.loading('Enhancing your songs...');
-    
     try {
       const response = await fetch('/api/ai/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ songs: processedSongs }),
+        body: JSON.stringify({ songs: songList }),
       });
 
       if (!response.ok) {
@@ -121,16 +113,20 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setProcessedSongs(data.songs);
-      toast.success('Songs enhanced successfully! 🎵', {
-        id: loadingToast,
-        duration: 2000,
-      });
+      // Ensure data is in the correct format
+      const processedData = Array.isArray(data) ? data : data.songs || [];
+      setProcessedSongs(processedData.map((song: any) => ({
+        name: typeof song === 'string' ? song : song.name || '',
+        artist: typeof song === 'string' ? undefined : song.artist
+      })));
+      setCurrentStep('process');
+      toast.success('Songs processed and enhanced with AI!');
     } catch (error) {
+      // If API fails, at least show the raw input as songs
+      setProcessedSongs(songList.map(name => ({ name })));
+      setCurrentStep('process');
+      toast.error('Failed to process songs with AI. Showing raw input.');
       console.error('Error processing songs:', error);
-      toast.error('Failed to enhance songs. Please try again.', {
-        id: loadingToast,
-      });
     } finally {
       setIsProcessing(false);
     }
@@ -245,63 +241,41 @@ export default function Home() {
             </p>
           </div>
 
-          {currentStep === 'input' ? (
-            <div className="space-y-8">
-              <div className="bg-gray-900 rounded-lg p-6 transform transition-all duration-300 hover:shadow-[0_0_30px_-12px] hover:shadow-purple-500/20">
-                <SongInput onSongInput={handleSongInput} />
+          {currentStep === 'input' && (
+            <div className="max-w-2xl mx-auto w-full space-y-8">
+              <div className="text-center space-y-4">
+                <h1 className="text-4xl font-bold text-white">Create Your Playlist</h1>
+                <p className="text-gray-400">
+                  Enter your songs below and we'll help you create a playlist
+                </p>
               </div>
+              <SongInput onSongInput={handleSongInput} isProcessing={isProcessing} />
             </div>
-          ) : (
+          )}
+
+          {currentStep === 'process' && (
             <div className="space-y-8">
               <div className="bg-gray-900 rounded-lg p-6 space-y-6 transform transition-all duration-300 hover:shadow-[0_0_30px_-12px] hover:shadow-purple-500/20">
                 <div className="space-y-4">
-                  <SongList
-                    songs={processedSongs || []}
+                  <SongList 
+                    songs={processedSongs || []} 
                     onSongsChange={setProcessedSongs}
                   />
                 </div>
+              </div>
 
-                <div className="flex flex-col gap-4">
-                  <div className="space-y-2">
-                    <button
-                      onClick={handleProcessWithAI}
-                      disabled={isProcessing}
-                      className="w-full px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white font-medium transition-all duration-300 flex items-center justify-center gap-2 group relative hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5"
-                    >
-                      <span className="text-purple-400 transition-transform duration-300 group-hover:rotate-180">✨</span>
-                      {isProcessing ? 'Working some magic... ✨' : 'Enhance with AI Magic ✨'}
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <PlatformSelector
-                      selectedPlatform={selectedPlatform}
-                      onSelect={setSelectedPlatform}
-                    />
-                    <button
-                      onClick={handleCreatePlaylist}
-                      disabled={isLoading || isCreating}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5"
-                    >
-                      {isLoading || isCreating ? (
-                        <>
-                          <span className="opacity-0">Create Playlist</span>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        </>
-                      ) : (
-                        `Create Epic Playlist on ${selectedPlatform} 🎵`
-                      )}
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="w-full px-6 py-3 text-gray-400 hover:text-white font-medium transition-all duration-300 rounded-lg border border-gray-800 hover:border-purple-500/30"
-                    >
-                      Start Fresh 🔄
-                    </button>
-                  </div>
-                </div>
+              <div className="bg-gray-900 rounded-lg p-6 space-y-6">
+                <PlatformSelector
+                  selectedPlatform={selectedPlatform}
+                  onSelect={setSelectedPlatform}
+                />
+                <button
+                  onClick={handleCreatePlaylist}
+                  disabled={isCreating || !processedSongs?.length}
+                  className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:hover:bg-purple-600 text-white rounded-lg transition-colors"
+                >
+                  {isCreating ? 'Creating Playlist...' : 'Create Playlist'}
+                </button>
               </div>
             </div>
           )}
