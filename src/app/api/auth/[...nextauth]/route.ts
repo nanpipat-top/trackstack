@@ -1,5 +1,6 @@
 import NextAuth, { AuthOptions, DefaultSession, Account } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import SpotifyProvider from "next-auth/providers/spotify";
 import { JWT } from "next-auth/jwt";
 
 // Extend the built-in session type
@@ -7,6 +8,7 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     accessToken?: string | null;
     expires?: string | null;
+    provider?: string | null;
   }
 }
 
@@ -16,11 +18,12 @@ declare module "next-auth/jwt" {
     accessToken?: string | null;
     refreshToken?: string | null;
     expiresAt?: number | null;
+    provider?: string | null;
   }
 }
 
 // Define the OAuth account type
-interface GoogleOAuthAccount extends Account {
+interface OAuthAccount extends Account {
   access_token?: string;
   refresh_token?: string;
   expires_at?: number;
@@ -46,33 +49,34 @@ export const authOptions: AuthOptions = {
         }
       }
     }),
+    SpotifyProvider({
+      clientId: process.env.SPOTIFY_CLIENT_ID!,
+      clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: 'user-read-email playlist-modify-public playlist-modify-private'
+        }
+      }
+    })
   ],
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    strategy: "jwt",
-    maxAge: 60 * 60, // 1 hour
+    strategy: 'jwt'
   },
   callbacks: {
-    async jwt({ token, account }): Promise<JWT> {
+    async jwt({ token, account }) {
       if (account) {
-        const oauthAccount = account as GoogleOAuthAccount;
-        return {
-          ...token,
-          accessToken: oauthAccount.access_token || null,
-          refreshToken: oauthAccount.refresh_token || null,
-          expiresAt: oauthAccount.expires_at || null
-        };
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.expiresAt = account.expires_at;
+        token.provider = account.provider;
       }
       return token;
     },
     async session({ session, token }) {
-      return {
-        ...session,
-        accessToken: token.accessToken,
-        expires: token.expiresAt 
-          ? new Date(token.expiresAt * 1000).toISOString()
-          : null
-      };
+      session.accessToken = token.accessToken;
+      session.provider = token.provider;
+      return session;
     }
   },
   pages: {

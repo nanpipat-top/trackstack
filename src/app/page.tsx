@@ -313,7 +313,7 @@ export default function Home() {
 
       {aiStatus && <ResultModal status={aiStatus} />}
 
-      {isLoading && (
+      {(isLoading || isProcessing) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-900/95 p-8 rounded-2xl shadow-2xl text-center border border-purple-500/30">
             <div className="relative mb-4">
@@ -323,7 +323,9 @@ export default function Home() {
               </div>
             </div>
             <p className="text-white text-lg font-medium mb-1">
-              {isCreating ? 'Creating your epic playlist... 🎵' : 'Working some magic... ✨'}
+              {isCreating ? 'Creating your epic playlist... 🎵' : 
+               isProcessing ? 'Enhancing with AI Magic... ✨' : 
+               'Working some magic... ✨'}
             </p>
             <p className="text-gray-400 text-sm">Just a moment while we craft something special 🪄</p>
           </div>
