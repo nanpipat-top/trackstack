@@ -28,6 +28,16 @@ export default function Home() {
   const [aiStatus, setAIStatus] = useState<Status | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [playlistResult, setPlaylistResult] = useState<PlaylistResult | null>(null);
+  const [showSpotifyButton, setShowSpotifyButton] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const switchToSpotify = () => {
+    setSelectedPlatform('Spotify');
+    setShowSpotifyButton(false);
+    toast.success('Switched to Spotify! Try creating your playlist again', {
+      duration: 4000
+    });
+  };
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -64,7 +74,23 @@ export default function Home() {
             const responseText = await response.text();
             
             if (!response.ok) {
-              throw new Error(`Failed to create playlist: ${responseText}`);
+              const data = JSON.parse(responseText);
+              toast.error(data.error, {
+                duration: 5000,
+                style: {
+                  maxWidth: '500px',
+                  whiteSpace: 'pre-wrap'
+                }
+              });
+              if (data.details) {
+                console.debug('Error details:', data.details);
+              }
+              if (data.suggestSpotify) {
+                setShowSpotifyButton(true);
+              }
+              const e = data.error instanceof Error ? data.error : new Error(data.error || 'Failed to create playlist');
+              setError(e);
+              throw e;
             }
 
             const data = JSON.parse(responseText);
@@ -77,13 +103,17 @@ export default function Home() {
             router.push('/');
           })
           .catch(error => {
-            toast.error('Failed to create playlist. Please try again.');
+            const e = error instanceof Error ? error : new Error('Unknown error occurred');
+            setError(e);
+            toast.error(e.message);
           })
           .finally(() => {
             setIsLoading(false);
           });
         } catch (error) {
-          toast.error('Failed to restore state. Please try again.');
+          const e = error instanceof Error ? error : new Error('Unknown error occurred');
+          setError(e);
+          toast.error(e.message);
           setIsLoading(false);
         }
       }
@@ -109,7 +139,29 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to process songs');
+        const data = await response.json();
+        
+        // Show error message
+        toast.error(data.error, {
+          duration: 5000,
+          style: {
+            maxWidth: '500px',
+            whiteSpace: 'pre-wrap'
+          }
+        });
+
+        // Show development details if available
+        if (data.details) {
+          console.debug('Error details:', data.details);
+        }
+        
+        if (data.suggestSpotify) {
+          setShowSpotifyButton(true);
+        }
+        
+        const e = data.error instanceof Error ? data.error : new Error(data.error || 'Failed to process songs');
+        setError(e);
+        throw e;
       }
 
       const data = await response.json();
@@ -122,10 +174,12 @@ export default function Home() {
       setCurrentStep('process');
       toast.success('Songs processed and enhanced with AI!');
     } catch (error) {
+      const e = error instanceof Error ? error : new Error('Failed to process songs');
+      setError(e);
       // If API fails, at least show the raw input as songs
       setProcessedSongs(songList.map(name => ({ name })));
       setCurrentStep('process');
-      toast.error('Failed to process songs with AI. Showing raw input.');
+      toast.error(e.message);
       console.error('Error processing songs:', error);
     } finally {
       setIsProcessing(false);
@@ -162,7 +216,9 @@ export default function Home() {
         }
       );
     } catch (error) {
-      toast.error('Failed to authenticate. Please try again.');
+      const e = error instanceof Error ? error : new Error('Failed to authenticate');
+      setError(e);
+      toast.error(e.message);
       setIsLoading(false);
     }
   };
@@ -197,7 +253,18 @@ export default function Home() {
         const data = await response.json();
         
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to create playlist');
+          const errorText = data.error || '';
+          if (errorText.includes('quota')) {
+            toast.error(
+              'YouTube API limit reached. Please try again later or use Spotify instead.',
+              { duration: 5000 }
+            );
+          } else {
+            toast.error('Failed to create playlist. Please try again.');
+          }
+          const e = error instanceof Error ? error : new Error('Failed to create playlist');
+          setError(e);
+          throw e;
         }
 
         // Clear pending state
@@ -206,8 +273,10 @@ export default function Home() {
         setPlaylistResult(data);
         toast.success('Playlist created successfully!');
       } catch (error) {
+        const e = error instanceof Error ? error : new Error('Failed to create playlist');
+        setError(e);
         console.error('Error creating playlist:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to create playlist');
+        toast.error(e.message);
         
         // Clear pending state on error too
         localStorage.removeItem('playlistPendingState');
@@ -243,12 +312,6 @@ export default function Home() {
 
           {currentStep === 'input' && (
             <div className="max-w-2xl mx-auto w-full space-y-8">
-              <div className="text-center space-y-4">
-                <h1 className="text-4xl font-bold text-white">Create Your Playlist</h1>
-                <p className="text-gray-400">
-                  Enter your songs below and we'll help you create a playlist
-                </p>
-              </div>
               <SongInput onSongInput={handleSongInput} isProcessing={isProcessing} />
             </div>
           )}
@@ -337,6 +400,33 @@ export default function Home() {
               >
                 Create Another ✨
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSpotifyButton && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white p-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in">
+          <span>Want to try Spotify instead?</span>
+          <button
+            onClick={switchToSpotify}
+            className="bg-white text-green-600 px-4 py-2 rounded-md font-semibold hover:bg-green-50 transition-colors"
+          >
+            Switch to Spotify
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-50 border-l-4 border-red-500 p-4 max-w-2xl w-full mx-4 rounded shadow-lg">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 whitespace-pre-wrap">{error.message}</p>
             </div>
           </div>
         </div>

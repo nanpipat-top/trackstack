@@ -3,6 +3,16 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+// Simple in-memory store for rate limiting
+// In production, you should use Redis or a database
+const rateLimits = new Map<string, { count: number, resetAt: number }>();
+
+const RATE_LIMIT = {
+  maxRequests: 3, // Maximum playlists per day
+  maxSongs: 20,   // Maximum songs per playlist
+  windowMs: 24 * 60 * 60 * 1000 // 24 hours
+};
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -11,8 +21,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // Check rate limit
+    const userId = session.user?.email || 'anonymous';
+    const now = Date.now();
+    const userLimit = rateLimits.get(userId);
+
+    if (userLimit) {
+      // Reset count if window has passed
+      if (now > userLimit.resetAt) {
+        rateLimits.set(userId, { count: 1, resetAt: now + RATE_LIMIT.windowMs });
+      } else if (userLimit.count >= RATE_LIMIT.maxRequests) {
+        return NextResponse.json({
+          error: `Rate limit exceeded. You can create up to ${RATE_LIMIT.maxRequests} playlists per day.`
+        }, { status: 429 });
+      } else {
+        // Increment count
+        rateLimits.set(userId, { count: userLimit.count + 1, resetAt: userLimit.resetAt });
+      }
+    } else {
+      // First request from this user
+      rateLimits.set(userId, { count: 1, resetAt: now + RATE_LIMIT.windowMs });
+    }
+
     const body = await req.json();
     const { songs, name = 'My Awesome Playlist' } = body;
+
+    // Check song limit
+    if (songs.length > RATE_LIMIT.maxSongs) {
+      return NextResponse.json({
+        error: `Playlist is too large. Maximum ${RATE_LIMIT.maxSongs} songs allowed.`
+      }, { status: 400 });
+    }
 
     const oauth2Client = new google.auth.OAuth2();
     oauth2Client.setCredentials({
@@ -96,11 +135,42 @@ export async function POST(req: Request) {
       title: playlistTitle,
       thumbnail: thumbnailUrl
     });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create playlist';
+  } catch (error: any) {
+    console.error('Error in YouTube API:', error);
+    
+    // Handle Google API specific errors
+    if (error?.code === 403) {
+      const message = error.message || error.errors?.[0]?.message || 'Unknown error';
+      if (message.includes('quota')) {
+        return NextResponse.json({
+          error: 'YouTube API limit reached. We recommend using Spotify instead as it has higher limits and is completely free!',
+          suggestSpotify: true
+        }, { status: 429 });
+      }
+    }
+
+    // Handle other errors
+    const errorMessage = error?.message || 'Unknown error';
+    let userMessage = 'Failed to create playlist on YouTube';
+    let statusCode = 500;
+
+    if (errorMessage.includes('quota')) {
+      userMessage = 'YouTube API limit reached. We recommend using Spotify instead as it has higher limits and is completely free!';
+      statusCode = 429;
+    } else if (errorMessage.includes('authenticate')) {
+      userMessage = 'Please sign in again to continue';
+      statusCode = 401;
+    } else {
+      userMessage = 'Something went wrong with YouTube. Try Spotify for a better experience!';
+    }
+
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+      { 
+        error: userMessage,
+        suggestSpotify: true,
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
+      { status: statusCode }
     );
   }
 }
