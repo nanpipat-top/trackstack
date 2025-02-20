@@ -9,6 +9,7 @@ import SongList from '@/components/SongList';
 import PlatformSelector from '@/components/PlatformSelector';
 import ResultModal from '@/components/ResultModal';
 import { Platform, ProcessResult, AIProcessingStatus as Status, Song, PlaylistResult } from '@/types';
+import { AIService } from '@/services/ai';
 import toast from 'react-hot-toast';
 
 type Step = 'input' | 'process';
@@ -101,8 +102,10 @@ export default function Home() {
   };
 
   const handleProcessWithAI = async () => {
+    if (!processedSongs?.length) return;
+
     setIsProcessing(true);
-    const loadingToast = toast.loading('Correcting song names and adding artists...');
+    const loadingToast = toast.loading('Enhancing your songs...');
     
     try {
       const response = await fetch('/api/ai/process', {
@@ -119,12 +122,13 @@ export default function Home() {
 
       const data = await response.json();
       setProcessedSongs(data.songs);
-      toast.success('AI processing complete!', {
+      toast.success('Songs enhanced successfully! 🎵', {
         id: loadingToast,
-        duration: 2000, 
+        duration: 2000,
       });
     } catch (error) {
-      toast.error('Failed to process songs. Please try again.', {
+      console.error('Error processing songs:', error);
+      toast.error('Failed to enhance songs. Please try again.', {
         id: loadingToast,
       });
     } finally {

@@ -3,10 +3,6 @@ import OpenAI from 'openai';
 export interface SongMetadata {
   name: string;
   artist?: string;
-  tempo?: 'slow' | 'medium' | 'fast';
-  genre?: string;
-  energy?: number;
-  mood?: string;
 }
 
 export class AIService {
@@ -72,33 +68,38 @@ export class AIService {
     try {
       const response = await this.openai.chat.completions.create({
         model: this.model,
-        store: true,
         messages: [
           {
             role: "system",
-            content: `You are a music expert. Your task is to:
-1. Correct song names and identify artists
-2. If no artist is provided, suggest the most popular artist for that song
-3. Format song names properly (correct capitalization, remove unnecessary spaces)
-4. Remove any non-song-related text or annotations
+            content: `You are a music expert. Your task is to correct song names and identify artists.
 
-You will receive a list of song names, one per line. For each song, identify the artist and return a JSON array.
+For each song in the input:
+1. If you can identify the song:
+   - Correct the song name (proper capitalization, remove unnecessary spaces)
+   - Add the most popular artist for that song
+   - Remove any non-song-related text or annotations
+2. If you cannot identify the song:
+   - Return the original input exactly as provided
+   - Leave the artist field empty
+
+Return a JSON array maintaining the exact same order as the input.
+Each item should have 'name' and 'artist' fields.
 
 Example input:
-shape of you
-perfect
+shape of u
+some unknown song title
 castle on the hill
 
 Example output:
 [
   {"name": "Shape of You", "artist": "Ed Sheeran"},
-  {"name": "Perfect", "artist": "Ed Sheeran"},
+  {"name": "some unknown song title", "artist": ""},
   {"name": "Castle on the Hill", "artist": "Ed Sheeran"}
 ]`
           },
           {
             role: "user",
-            content: `Analyze these songs and return a JSON array with details for each song. Include name, artist (if not specified, use ""), tempo (slow/medium/fast), genre, energy (0-1), and mood. Format the response as a JSON array only, no markdown. Songs: ${songNames.join(', ')}`
+            content: songNames.join('\n')
           }
         ],
         temperature: 0.3,
@@ -114,104 +115,20 @@ Example output:
         return songNames.map(name => ({ name, artist: '' }));
       }
 
-      const jsonStr = jsonMatch[0];
-      const parsed = JSON.parse(jsonStr);
-
-      if (!Array.isArray(parsed)) {
-        console.error('Parsed result is not an array');
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return Array.isArray(parsed) ? parsed : songNames.map(name => ({ name, artist: '' }));
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
         return songNames.map(name => ({ name, artist: '' }));
       }
-
-      // Ensure all original songs are included
-      const processedNames = new Set(parsed.map(s => s.name.toLowerCase()));
-      const missingSongs = songNames
-        .filter(name => !processedNames.has(name.toLowerCase()))
-        .map(name => ({ name, artist: '' }));
-
-      return [...parsed, ...missingSongs];
     } catch (error) {
-      console.error('Error parsing AI response:', error);
+      console.error('Error in API call:', error);
       return songNames.map(name => ({ name, artist: '' }));
     }
   }
 
-  async analyzeSongs(songs: SongMetadata[]): Promise<SongMetadata[]> {
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: this.model,
-        store: true,
-        messages: [
-          {
-            role: "system",
-            content: `You are a music expert. Analyze songs and provide detailed metadata:
-1. Tempo (slow/medium/fast)
-2. Genre (be specific but consistent)
-3. Energy level (0-1, where 1 is highest energy)
-4. Mood (descriptive but concise)
-
-Return your response as a JSON array with the complete song metadata.
-Example: [{"name": "Shallow", "artist": "Lady Gaga", "tempo": "medium", "genre": "pop rock", "energy": 0.7, "mood": "emotional"}]`
-          },
-          {
-            role: "user",
-            content: `Analyze these songs and add metadata:
-
-Songs:
-${JSON.stringify(songs, null, 2)}`
-          }
-        ],
-        temperature: 0.3,
-      });
-
-      const content = response.choices[0].message.content || "[]";
-      console.log('Raw AI response:', content);
-      const cleanContent = this.cleanJsonResponse(content);
-      const parsed = JSON.parse(cleanContent);
-      return Array.isArray(parsed) ? parsed : songs;
-    } catch (error) {
-      console.error('Error parsing AI response:', error);
-      return songs;
-    }
-  }
-
-  async optimizePlaylistOrder(songs: SongMetadata[]): Promise<SongMetadata[]> {
-    const response = await this.openai.chat.completions.create({
-      model: this.model,
-      store: true,
-      messages: [
-        {
-          role: "system",
-          content: `You are a professional DJ and playlist curator. 
-Create the perfect playlist order following these rules:
-1. Start with medium energy songs to set the mood
-2. Gradually build up energy while maintaining flow
-3. Group similar genres and moods together
-4. Create smooth transitions between tempos
-5. End with calmer songs for a nice cooldown
-6. Consider both song characteristics and artist styles
-7. Avoid jarring transitions in energy or mood
-
-Return your response as a JSON array with songs in the optimal order.`
-        },
-        {
-          role: "user",
-          content: `Optimize this playlist order. Return the songs array in the optimal order.
-
-Songs:
-${JSON.stringify(songs, null, 2)}`
-        }
-      ],
-      temperature: 0.5,
-    });
-
-    try {
-      const content = response.choices[0].message.content || "[]";
-      console.log('Raw AI response:', content);
-      const cleanContent = this.cleanJsonResponse(content);
-      return JSON.parse(cleanContent);
-    } catch (error) {
-      console.error('Error parsing AI response:', error);
-      return songs;
-    }
+  async enhanceSongs(songs: SongMetadata[]): Promise<SongMetadata[]> {
+    return await this.correctSongNames(songs);
   }
 }

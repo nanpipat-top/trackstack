@@ -14,20 +14,12 @@ export async function POST(req: NextRequest) {
       typeof song === 'string' ? song : song.name
     );
 
-    // Step 1: Correct song names and get metadata
-    const correctedSongs = await aiService.correctSongNames(songNames);
-    console.log('After correction:', correctedSongs.length);
-
-    // Step 2: Analyze songs
-    const analyzedSongs = await aiService.analyzeSongs(correctedSongs);
-    console.log('After analysis:', analyzedSongs.length);
-
-    // Step 3: Optimize playlist order
-    const optimizedSongs = await aiService.optimizePlaylistOrder(analyzedSongs);
-    console.log('After optimization:', optimizedSongs.length);
+    // Enhance songs (correct names and get artists)
+    const enhancedSongs = await aiService.enhanceSongs(songNames);
+    console.log('After enhancement:', enhancedSongs.length);
 
     // Convert to Song type
-    const processedSongs: Song[] = optimizedSongs.map(song => ({
+    const processedSongs: Song[] = enhancedSongs.map(song => ({
       ...song,
       found: false // Will be updated during platform-specific search
     }));
