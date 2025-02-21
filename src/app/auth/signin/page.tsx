@@ -1,9 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
-export default function SignIn() {
+function SignInContent() {
   const searchParams = useSearchParams();
   const platform = searchParams.get('platform');
 
@@ -33,5 +34,13 @@ export default function SignIn() {
         </button>
       </div>
     </main>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 }

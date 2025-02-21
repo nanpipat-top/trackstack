@@ -13,7 +13,7 @@ export default function ProcessingStatus({ isProcessing }: ProcessingStatusProps
           <span className="text-lg font-medium text-white">Processing your playlist...</span>
         </div>
         <p className="text-gray-400 text-center">
-          We're searching for your songs and creating your playlist. This may take a moment.
+          We&apos;re searching for your songs and creating your playlist. This may take a moment.
         </p>
       </div>
     </div>

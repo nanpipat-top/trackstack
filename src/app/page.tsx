@@ -1,20 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { PlayCircleIcon } from '@heroicons/react/24/solid';
 import SongInput from '@/components/SongInput';
 import SongList from '@/components/SongList';
 import PlatformSelector from '@/components/PlatformSelector';
-import ResultModal from '@/components/ResultModal';
-import { Platform, ProcessResult, AIProcessingStatus as Status, Song, PlaylistResult } from '@/types';
-import { AIService } from '@/services/ai';
+import { Platform, Song, PlaylistResult } from '@/types';
 import toast from 'react-hot-toast';
 
 type Step = 'input' | 'process';
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -22,10 +20,7 @@ export default function Home() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>('Spotify');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rawSongs, setRawSongs] = useState<string[]>([]);
   const [processedSongs, setProcessedSongs] = useState<Song[] | null>(null);
-  const [result, setResult] = useState<ProcessResult | null>(null);
-  const [aiStatus, setAIStatus] = useState<Status | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [playlistResult, setPlaylistResult] = useState<PlaylistResult | null>(null);
   const [showSpotifyButton, setShowSpotifyButton] = useState(false);
@@ -118,69 +113,37 @@ export default function Home() {
         }
       }
     }
-  }, [session, status, searchParams, router]);
+  }, [session, status, searchParams, router, error]);
 
-  const handleSongInput = async (text: string) => {
+  const handleProcessSongs = async (input: string) => {
     setIsProcessing(true);
-    const songList = text
+    const songList = input
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0);
-
-    setRawSongs(songList);
 
     try {
       const response = await fetch('/api/ai/process', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ songs: songList }),
+        body: JSON.stringify({ songs: songList })
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        
-        // Show error message
-        toast.error(data.error, {
-          duration: 5000,
-          style: {
-            maxWidth: '500px',
-            whiteSpace: 'pre-wrap'
-          }
-        });
-
-        // Show development details if available
-        if (data.details) {
-          console.debug('Error details:', data.details);
-        }
-        
-        if (data.suggestSpotify) {
-          setShowSpotifyButton(true);
-        }
-        
-        const e = data.error instanceof Error ? data.error : new Error(data.error || 'Failed to process songs');
-        setError(e);
-        throw e;
+        throw new Error('Failed to process songs');
       }
 
       const data = await response.json();
-      // Ensure data is in the correct format
-      const processedData = Array.isArray(data) ? data : data.songs || [];
-      setProcessedSongs(processedData.map((song: any) => ({
-        name: typeof song === 'string' ? song : song.name || '',
-        artist: typeof song === 'string' ? undefined : song.artist
-      })));
+      setProcessedSongs(data.songs);
       setCurrentStep('process');
-      toast.success('Songs processed and enhanced with AI!');
-    } catch (error) {
-      const e = error instanceof Error ? error : new Error('Failed to process songs');
-      setError(e);
-      // If API fails, at least show the raw input as songs
-      setProcessedSongs(songList.map(name => ({ name })));
-      setCurrentStep('process');
-      toast.error(e.message);
-      console.error('Error processing songs:', error);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err);
+      } else {
+        setError(new Error('An unexpected error occurred'));
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -287,15 +250,13 @@ export default function Home() {
     };
 
     createPlaylistAfterAuth();
-  }, [session]); // Run when session changes
+  }, [session, error]); // Run when session changes
 
-  const handleReset = () => {
-    setResult(null);
-    setSelectedPlatform('Spotify');
-    setProcessedSongs(null);
-    setCurrentStep('input');
-    setAIStatus(null);
-  };
+  useEffect(() => {
+    if (error) {
+      toast.error(error.message);
+    }
+  }, [error]);
 
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -312,7 +273,7 @@ export default function Home() {
 
           {currentStep === 'input' && (
             <div className="max-w-2xl mx-auto w-full space-y-8">
-              <SongInput onSongInput={handleSongInput} isProcessing={isProcessing} />
+              <SongInput onSongInput={handleProcessSongs} isProcessing={isProcessing} />
             </div>
           )}
 
@@ -344,8 +305,6 @@ export default function Home() {
           )}
         </div>
       </div>
-
-      {aiStatus && <ResultModal status={aiStatus} />}
 
       {(isLoading || isProcessing) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -432,5 +391,13 @@ export default function Home() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

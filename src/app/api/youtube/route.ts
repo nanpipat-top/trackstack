@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '../auth/auth.config';
 
 // Simple in-memory store for rate limiting
 // In production, you should use Redis or a database
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
             }
           }
         });
-      } catch (error) {
+      } catch {
         // Continue with next song even if one fails
         continue;
       }
@@ -135,42 +135,49 @@ export async function POST(req: Request) {
       title: playlistTitle,
       thumbnail: thumbnailUrl
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in YouTube API:', error);
     
     // Handle Google API specific errors
-    if (error?.code === 403) {
-      const message = error.message || error.errors?.[0]?.message || 'Unknown error';
-      if (message.includes('quota')) {
+    if (error instanceof Error) {
+      if (error.message.includes('quota')) {
         return NextResponse.json({
           error: 'YouTube API limit reached. We recommend using Spotify instead as it has higher limits and is completely free!',
           suggestSpotify: true
         }, { status: 429 });
       }
+
+      // Handle other errors
+      let userMessage = 'Failed to create playlist on YouTube';
+      let statusCode = 500;
+
+      if (error.message.includes('quota')) {
+        userMessage = 'YouTube API limit reached. We recommend using Spotify instead as it has higher limits and is completely free!';
+        statusCode = 429;
+      } else if (error.message.includes('authenticate')) {
+        userMessage = 'Please sign in again to continue';
+        statusCode = 401;
+      } else {
+        console.error('Unexpected error:', error);
+      }
+
+      return NextResponse.json(
+        { 
+          error: userMessage,
+          suggestSpotify: true,
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: statusCode }
+      );
     }
 
-    // Handle other errors
-    const errorMessage = error?.message || 'Unknown error';
-    let userMessage = 'Failed to create playlist on YouTube';
-    let statusCode = 500;
-
-    if (errorMessage.includes('quota')) {
-      userMessage = 'YouTube API limit reached. We recommend using Spotify instead as it has higher limits and is completely free!';
-      statusCode = 429;
-    } else if (errorMessage.includes('authenticate')) {
-      userMessage = 'Please sign in again to continue';
-      statusCode = 401;
-    } else {
-      userMessage = 'Something went wrong with YouTube. Try Spotify for a better experience!';
-    }
-
+    // If error is not an Error instance, return a generic error
     return NextResponse.json(
       { 
-        error: userMessage,
-        suggestSpotify: true,
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        error: 'An unexpected error occurred',
+        suggestSpotify: true
       },
-      { status: statusCode }
+      { status: 500 }
     );
   }
 }

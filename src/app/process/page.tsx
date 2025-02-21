@@ -9,7 +9,7 @@ export default function ProcessPage() {
   useEffect(() => {
     // Redirect back to home page
     router.push('/');
-  }, []);
+  }, [router]);
 
   return null;
 }
