@@ -73,7 +73,7 @@ export default function SongInput({ onSongInput, isProcessing = false }: SongInp
             Processing...
           </div>
         ) : (
-          'Process Songs'
+          'Create Playlist ✨'
         )}
       </button>
     </div>

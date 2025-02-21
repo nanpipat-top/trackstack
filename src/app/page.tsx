@@ -67,7 +67,7 @@ export default function Home() {
             },
             body: JSON.stringify({
               songs: songs,
-              name: 'My Awesome Playlist'
+              name: 'Trackstack Playlist'
             }),
           })
           .then(async response => {
@@ -246,7 +246,7 @@ export default function Home() {
           },
           body: JSON.stringify({
             songs: pendingState.songs,
-            name: 'My Awesome Playlist'
+            name: 'Trackstack Playlist'
           }),
         });
 
@@ -337,7 +337,7 @@ export default function Home() {
                   disabled={isCreating || !processedSongs?.length}
                   className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:hover:bg-purple-600 text-white rounded-lg transition-colors"
                 >
-                  {isCreating ? 'Creating Playlist...' : 'Create Playlist'}
+                  {isCreating ? 'Making Magic ✨' : 'Let\'s Mix 🎵'}
                 </button>
               </div>
             </div>

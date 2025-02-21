@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { songs, name = 'My Awesome Playlist' } = body;
+    const { songs, name = 'Trackstack Playlist' } = body;
 
     // Check song limit
     if (songs.length > RATE_LIMIT.maxSongs) {

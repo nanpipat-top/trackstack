@@ -7,7 +7,7 @@ interface PlatformSelectorProps {
 }
 
 export default function PlatformSelector({ onSelect, selectedPlatform }: PlatformSelectorProps) {
-  const platforms: Platform[] = ['YouTube Music', 'Spotify'];
+  const platforms: Platform[] = ['Spotify', 'YouTube Music'];
 
   const getIconPath = (platform: Platform) => {
     switch (platform) {
@@ -44,13 +44,16 @@ export default function PlatformSelector({ onSelect, selectedPlatform }: Platfor
             onClick={() => onSelect(platform)}
             className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
               getButtonColor(platform, selectedPlatform === platform)
-            }`}
+            } ${platform === 'Spotify' ? 'transform hover:scale-105 shadow-lg hover:shadow-green-500/30' : ''}`}
+            style={{
+              flex: platform === 'Spotify' ? '1.2' : '1'
+            }}
           >
             <Image 
               src={getIconPath(platform)}
               alt={platform}
-              width={24}
-              height={24}
+              width={platform === 'Spotify' ? 28 : 24}
+              height={platform === 'Spotify' ? 28 : 24}
               className={selectedPlatform === platform ? 'text-white' : 'text-gray-400'}
             />
             {platform}
