@@ -41,13 +41,16 @@ export default function PlatformSelector({ onSelect, selectedPlatform }: Platfor
         {platforms.map((platform) => (
           <button
             key={platform}
-            onClick={() => onSelect(platform)}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+            onClick={() => platform === 'Spotify' && onSelect(platform)}
+            className={`relative flex-1 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
               getButtonColor(platform, selectedPlatform === platform)
-            } ${platform === 'Spotify' ? 'transform hover:scale-105 shadow-lg hover:shadow-green-500/30' : ''}`}
+            } ${platform === 'Spotify' ? 'transform hover:scale-105 shadow-lg hover:shadow-green-500/30' : ''} ${
+              platform === 'YouTube Music' ? 'opacity-60 cursor-not-allowed' : ''
+            }`}
             style={{
               flex: platform === 'Spotify' ? '1.2' : '1'
             }}
+            disabled={platform === 'YouTube Music'}
           >
             <Image 
               src={getIconPath(platform)}
@@ -57,6 +60,11 @@ export default function PlatformSelector({ onSelect, selectedPlatform }: Platfor
               className={selectedPlatform === platform ? 'text-white' : 'text-gray-400'}
             />
             {platform}
+            {platform === 'YouTube Music' && (
+              <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">
+                Coming Soon
+              </span>
+            )}
           </button>
         ))}
       </div>
